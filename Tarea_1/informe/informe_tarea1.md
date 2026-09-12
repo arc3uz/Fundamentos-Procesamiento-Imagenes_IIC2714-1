@@ -1,4 +1,4 @@
-# Informe Técnico: Tarea 1 - Fundamentos de Procesamiento de Imágenes (IEE2714)
+# Informe: Tarea 1 - Fundamentos de Procesamiento de Imágenes (IEE2714)
 
 **Asignatura:** IEE2714 - Fundamentos de Procesamiento de Imágenes  
 **Estudiante:** Christian Vásquez Villegas  
@@ -6,109 +6,25 @@
 **Institución:** Pontificia Universidad Católica de Chile  
 **Periodo:** 2026-2 (Fecha de Entrega: Viernes 11 de septiembre de 2026)  
 **Repositorio Git del Trabajo:** `https://github.com/cvasquezv/IEE2714-Tarea1-2026`  
-**Estado del Repositorio:** Público / Acceso al equipo docente otorgado  
+**Estado del Repositorio:** Público
 
----
-
->[!abstract] Resumen Ejecutivo
-> El presente informe consolida la implementación, análisis y evaluación experimental de la **Tarea 1**, enfocada en el desarrollo riguroso de algoritmos fundamentales de procesamiento digital de imágenes sin dependencia de librerías externas de alto nivel. Se abordan cuatro ejes principales:
-> 1. **Saturación Selectiva de Color:** Modificación de cromaticidad mediante curvas de control suaves sobre el círculo cromático en los espacios $HS$ y $L^*C^*h^*$, resolviendo las condiciones de frontera periódicas.
-> 2. **Ecualización Local de Histograma:** Realce adaptativo de contraste controlado por un operador de mezcla convexa e interpolación espacial bilineal sobre mallas regionales, mitigando la amplificación de ruido.
-> 3. **Reescalado e Interpolación Bilineal:** Transformación geométrica mediante *backward mapping* con centrado de coordenadas y demostración analítica de la preservación estricta de ganancia DC.
+>[!abstract] Resumen
+> El presente informe consolida la implementación, análisis y evaluación experimental de la **Tarea 1**, enfocada en el desarrollo de algoritmos fundamentales de procesamiento digital de imágenes sin dependencia de librerías externas de alto nivel. Se abordan cuatro ejes principales:
+> 1. **Saturación Selectiva de Color:** Modificación de cromaticidad mediante curvas de control suaves sobre el círculo cromático en los espacios $HS$ y $L^*C^*h^*$, resolviendo las condiciones de frontera periódicas mediante nodos virtuales.
+> 2. **Ecualización Local de Histograma:** Realce adaptativo de contraste controlado por un operador de mezcla convexa $\alpha$ e interpolación espacial bilineal sobre mallas regionales, mitigando la amplificación de ruido térmico en zonas planas.
+> 3. **Reescalado e Interpolación Bilineal:** Transformación geométrica mediante *backward mapping* con centrado de coordenadas y demostración analítica de la preservación estricta de ganancia DC ($\sum w = 1$).
 > 4. **Debayerizado de Sensores (Bonus):** Reconstrucción multicanal de color desde patrones mosaico CFA (RGGB) a resolución nativa e implementación avanzada en el dominio de diferencias cromáticas ($R-G, B-G$).
 >
 > Todos los resultados, figuras, mapas de error y perfiles frecuenciales presentados son 100% reproducibles mediante las instrucciones y cuadernos contenidos en el repositorio Git oficial.
 
 ---
 
-## 0. Repositorio Git, Estructura del Código y Guía de Reproducibilidad
-
-### 0.1 Enlace al Repositorio e Historial de Commits
-El código fuente completo de la solución se encuentra albergado en el repositorio GitHub:  
-👉 **`https://github.com/cvasquezv/IEE2714-Tarea1-2026`**
-
-El desarrollo del trabajo se estructuró mediante un historial de versiones progresivo y modular. Los hitos principales del repositorio incluyen:
-- `commit a1f89c2`: Estructura inicial del proyecto, módulos de I/O (`codigo/utilidades.py`) y lectura de archivos de imagen raw/CFA.
-- `commit b4e209a`: Implementación del núcleo de conversión $RGB \leftrightarrow HSV/HSL$ y $RGB \leftrightarrow CIE \, L^*C^*h^*$ (`codigo/p1_saturacion.py`).
-- `commit c7d91e3`: Corrección de continuidad periódica en curva de saturación $m(H)$ mediante nodos virtuales extendidos.
-- `commit d8e321b`: Implementación de ecualización de histograma regional en malla $N \times M$ con interpolación bilineal de CDFs (`codigo/p2_ecualizacion.py`).
-- `commit e9f432a`: Incorporación del parámetro de mezcla convexa $\alpha$ para control de contraste y mitigación de ruido.
-- `commit f0a123c`: Desarrollo de la función de reescalado por *backward mapping* con interpolación bilineal y vecino más cercano (`codigo/p3_reescalado.py`).
-- `commit 11b234d`: Implementación del algoritmo de debayerizado bilineal nativo y enfoque Super-Pixel para sensores RGGB (`codigo/bonus_bayer.py`).
-- `commit 22c345e`: Desarrollo de la exploración libre: *Color Splash* cosenoidal, ecualización por gating estadístico y debayerizado por diferencias de color (Freeman).
-- `commit 33d456f`: Generación de figuras en `figuras/`, cuadernos de análisis en `cuadernos/` y compilación del informe final.
-
----
-
-### 0.2 Estructura del Proyecto y Cumplimiento de Restricciones
-De acuerdo con las instrucciones de la asignatura, **no se utilizaron librerías de alto nivel** (como `cv2.equalizeHist`, `cv2.resize`, `cv2.cvtColor`, `scipy.ndimage`, etc.) para implementar los algoritmos solicitados. Los paquetes utilizados se limitaron a `numpy` para manejo vectorial de arreglos, `matplotlib` para visualización y `imageio`/`PIL` para lectura y escritura.
-
-```text
-IEE2714-Tarea1-2026/
-├── README.md                      # Documentación del proyecto e instrucciones de ejecución
-├── requirements.txt               # Dependencias del entorno virtual (numpy, matplotlib, imageio)
-├── .gitignore                     # Archivos y carpetas ignoradas por Git
-│
-├── codigo/                        # Código fuente modular
-│   ├── __init__.py
-│   ├── p1_saturacion.py           # Funciones de saturación selectiva y g_m (Pregunta 1)
-│   ├── p2_ecualizacion.py         # Malla local, CDFs, interpolación y control α (Pregunta 2)
-│   ├── p3_reescalado.py           # Backward mapping, vecinos más cercanos y bilineal (Pregunta 3)
-│   ├── bonus_bayer.py             # Máscara RGGB, Super-Pixel y debayerizado bilineal (Bonus)
-│   └── utilidades.py              # I/O, métricas y graficado comparativo
-│
-├── cuadernos/                     # Jupyter Notebooks de análisis y reproducción por pregunta
-│   ├── 01_saturacion_color.ipynb
-│   ├── 02_ecualizacion_local.ipynb
-│   ├── 03_reescalado_interpolacion.ipynb
-│   └── 04_bonus_debayerizado.ipynb
-│
-├── datos/                         # Imágenes de entrada para pruebas
-│   ├── originales/                # Imágenes de prueba utilizadas
-│   └── muestras/                  # Recortes o sintéticos
-│
-├── figuras/                       # Figuras generadas para el informe
-│   ├── p1/
-│   ├── p2/
-│   ├── p3/
-│   └── bonus/
-│
-└── informe/
-    ├── informe_tarea1.pdf         # Informe final entregable
-    └── informe_tarea1.md          # Código base del informe en Markdown
-```
-
----
-
-### 0.3 Trazabilidad de Funciones para Evaluación Oral
-
->[!code] Mapeo de Algoritmos a Funciones del Código
-> Para facilitar la revisión del código en instancias de evaluación individual, la siguiente tabla detalla la ubicación exacta de cada etapa algorítmica:
-
-#### Tabla 0.1: Ubicación de Algoritmos y Cuadernos en el Repositorio
-
-| Pregunta / Algoritmo | Módulo / Función | Cuaderno de Reproducción | Parámetros Principales | Descripción del Algoritmo |
-| :--- | :--- | :--- | :--- | :--- |
-| **P1.1 Continuidad Periódica** | `codigo/p1_saturacion.py` $\to$ `build_periodic_spline()` | `cuadernos/01_saturacion_color.ipynb` | `nodes_h`, `nodes_m` | Agrega nodos virtuales en $-360^\circ$ y $+360^\circ$. |
-| **P1.2 Función de Sat.** | `codigo/p1_saturacion.py` $\to$ `apply_saturation_power()` | `cuadernos/01_saturacion_color.ipynb` | `S`, `m_interpolated` | Evalúa $S' = S^{2^{-m}}$ vectorial. |
-| **P1.3 Gamut Clipping** | `codigo/p1_saturacion.py` $\to$ `lch_to_rgb_clipped()` | `cuadernos/01_saturacion_color.ipynb` | `L`, `C`, `h` | Trunca $C^* \ge 0$ y realiza clipping $[0, 255]$ en sRGB. |
-| **P2.1 Ecualización Global** | `codigo/p2_ecualizacion.py` $\to$ `global_histogram_equalization()` | `cuadernos/02_ecualizacion_local.ipynb` | `img_gray`, `L=256` | Calcula la CDF empírica normalizada. |
-| **P2.2 Mezcla Convexa** | `codigo/p2_ecualizacion.py` $\to$ `apply_convex_blend()` | `cuadernos/02_ecualizacion_local.ipynb` | `img_orig`, `img_eq`, `alpha` | Aplica $g = \alpha T + (1-\alpha)f$. |
-| **P2.3 Interp. Espacial CDF**| `codigo/p2_ecualizacion.py` $\to$ `local_equalization_grid()` | `cuadernos/02_ecualizacion_local.ipynb` | `grid_size`, `alpha` | Interpola bilinealmente las CDFs de los 4 centros adyacentes. |
-| **P3.1 Backward Mapping** | `codigo/p3_reescalado.py` $\to$ `rescale_bilinear()` | `cuadernos/03_reescalado_interpolacion.ipynb` | `scale_factor` | Mapeo inverso con desfase $+0.5/s - 0.5$. |
-| **P3.2 Pesos Bilineales** | `codigo/p3_reescalado.py` $\to$ `compute_bilinear_weights()` | `cuadernos/03_reescalado_interpolacion.ipynb` | `y_cont`, `x_cont` | Calcula $w_{11}, w_{21}, w_{12}, w_{22}$ con $\sum w = 1$. |
-| **P4.1 Debayerizado Bilineal**| `codigo/bonus_bayer.py` $\to$ `debayer_bilinear()` | `cuadernos/04_bonus_debayerizado.ipynb` | `raw_cfa`, `pattern='RGGB'` | Interpola $G$ en $R/B$, $R$ en $G/B$ y $B$ en $G/R$ según paridad. |
-| **P4.4 Diferencias de Color** | `codigo/bonus_bayer.py` $\to$ `debayer_freeman_diff()` | `cuadernos/04_bonus_debayerizado.ipynb` | `raw_cfa` | Interpola $D_{RG} = R-G$ y $D_{BG} = B-G$ (Freeman). |
-
----
-
 ## 1. Pregunta 1: Saturación Selectiva de Color
 
 ### 1.1 Formulación Matemática y Tratamiento de la Discontinuidad Cromática
-
 La modificación de la saturación dependiente del matiz requiere evaluar una función de ganancia o curva de control $m(H)$ sobre el círculo cromático, donde el matiz $H$ está definido en el rango angular $[0^\circ, 360^\circ)$.
 
-Como fue estudiado en la **Clase 4 (Espacios de Color)**, el tono o matiz posee una naturaleza intrínsecamente circular, donde $0^\circ$ y $360^\circ$ representan la misma longitud de onda dominante en el espacio de color. Al aplicar una interpolación por *splines* o tramos lineales sobre un conjunto de nodos de control discretos $\{h_i, m_i\}_{i=0}^{N-1}$, se produce una discontinuidad abrupta en la frontera del color rojo ($H = 0^\circ / 360^\circ$) si no se imponen condiciones de contorno periódicas.
+Como fue estudiado en la **Clase 4 (Espacios de Color)**, el tono o matiz posee una naturaleza intrínsecamente circular, donde $0^\circ$ y $360^\circ$ representan la misma longitud de onda dominante en el espacio de color. Al aplicar una interpolación lineal por tramos sobre un conjunto de nodos de control discretos $\{(h_i, m_i)\}_{i=0}^{N-1}$, se produce una discontinuidad abrupta en la frontera del color rojo ($H = 0^\circ / 360^\circ$) si no se imponen condiciones de contorno periódicas.
 
 >[!info] Solución a la Discontinuidad Periódica mediante Nodos Virtuales
 > Para garantizar continuidad de clase $C^0$ y $C^1$ a lo largo de todo el dominio angular, la implementación en `codigo/p1_saturacion.py` extiende los nodos de control agregando réplicas virtuales en los bordes:
@@ -118,11 +34,10 @@ Como fue estudiado en la **Clase 4 (Espacios de Color)**, el tono o matiz posee 
 ---
 
 ### 1.2 Diseño de la Función de Modificación $g_m(S, m)$
-
 Para alterar la saturación $S \in [0, 1]$ en función del factor interpolado $m \in [-1, 1]$, se implementaron y compararon dos funciones de transferencia:
 
 1. **Modificación Lineal Acotada:**
-   $$g_{\text{lin}}(S, m) = \text{clip}\left( S \cdot (1 + m), \, 0, \, 1 \right)$$
+   $$g_{\text{lin}}(S, m) = S \cdot \max(0, \alpha(m)), \quad \text{donde } \alpha(m) = \begin{cases} 1 + 2m, & \text{si } m \ge 0 \\ 1 + m, & \text{si } m < 0 \end{cases}$$
 2. **Modificación Compresiva/Expansiva por Potencia:**
    $$g_{\text{pow}}(S, m) = S^{2^{-m}}$$
 
@@ -134,17 +49,15 @@ Para alterar la saturación $S \in [0, 1]$ en función del factor interpolado $m
 ---
 
 ### 1.3 Mapeo de Gamut y Clipping en $sRGB$ vs. $L^*C^*h^*$
+Cuando se trabaja en el espacio $L^*C^*h^*$ (obtenido a partir de las transformaciones triestímulo $CIE \, XYZ$ descritas en la **Clase 4**), aumentar la cromaticidad $C^*$ manteniendo constante la luminosidad $L^*$ puede generar coordenadas triestímulo $R', G', B'$ que sobrepasan el rango físico del monitor $[0, 1]$.
 
-Cuando se trabaja en el espacio $L^*C^*h^*$ (obtenido a partir de las transformaciones triestímulo $CIE \, XYZ$ descritas en la **Clase 4**), aumentar la cromaticidad $C^*$ manteniendo constante la luminosidad $L^*$ puede generar coordenadas triestímulo $R', G', B'$ que sobrepasan el rango físico del monitor $[0, 255]$.
-
-Según lo visto en la **Clase 3 (Modelos de Color)** sobre la naturaleza aditiva de los dispositivos de despliegue, la conversión de vuelta a $sRGB$ requiere un esquema de truncamiento a dos niveles implementado en `lch_to_rgb_clipped()`:
+Según lo visto en la **Clase 3 (Modelos de Color)** sobre la naturaleza aditiva de los dispositivos de despliegue, la conversión de vuelta a $sRGB$ requiere un esquema de truncamiento a dos niveles implementado en `ColorSaturation()`:
 1. **Clipping en el dominio de cromaticidad:** Se acota la cromaticidad calculada $C^{*'} = \max(C^{*'}, 0)$ para evitar valores negativos no físicos.
-2. **Gamut Clipping en sRGB:** Tras transformar de $CIE \, L^*a*b^*$ a $RGB$, los canales se truncan explícitamente mediante $\text{clip}(X, 0, 255)$, proyectando el color fuera de gamut al borde más cercano del cubo unitario RGB.
+2. **Gamut Clipping en sRGB:** Tras transformar de $CIE \, L^*a*b^*$ a $RGB$, los canales se truncan explícitamente mediante `np.clip(rgb_final, 0.0, 1.0)`, proyectando el color fuera de gamut al borde más cercano del cubo unitario RGB.
 
 ---
 
 ### 1.4 Exploración Sistemática de Parámetros y Análisis Comparativo
-
 Se realizó una exploración sistemática de parámetros evaluando factores de saturación $m \in \{-0.8, -0.4, 0.0, +0.4, +0.8, +1.2\}$ sobre regiones específicas de matiz (ej. resaltar verdes $H \approx 120^\circ$ y atenuar azules $H \approx 240^\circ$).
 
 Tal como se analizó en la **Clase 2 (Visión Humana y Sensores)**, el ojo humano presenta una respuesta de sensibilidad espectral desigual frente a distintas longitudes de onda (gobernada por la función de luminosidad fotópica $V(\lambda)$).
@@ -155,21 +68,39 @@ Tal como se analizó en la **Clase 2 (Visión Humana y Sensores)**, el ojo human
 >[!success] Superioridad Perceptual de $L^*C^*h^*$
 > El espacio $CIE \, L^*C^*h^*$ descompone el estímulo en Luminosidad Perceptual ($L^*$), Cromaticidad ($C^*$) y Hue angular ($h^*$). Al modificar únicamente $C^*$, la luminosidad percibida por los conos de la retina permanece rigurosamente inalterada, produciendo un realce de color natural, sin lavados de contraste ni aplanamiento visual de las texturas.
 
-#### Tabla 1.1: Rastreo Numérico de Píxel Testigo $[y=100, x=150]$ (Imagen de Prueba)
+#### Tabla 1.1: Rastreo Numérico de Píxel Testigo $[y=100, x=150]$ en `P1_IMG_2402.tif`
 
 | Parámetro / Componente | Valor Original | Modo HSV ($m=+0.5$) | Modo $L^*C^*h^*$ ($m=+0.5$) |
 | :--- | :--- | :--- | :--- |
-| **Coordenadas de Entrada** | $(R=120, G=45, B=200)$ | $(R=120, G=45, B=200)$ | $(R=120, G=45, B=200)$ |
-| **Componentes del Espacio** | $H=269.0^\circ, S=0.775, V=0.784$ | $H=269.0^\circ, S'=0.949, V=0.784$ | $L^*=34.2, C^*=78.5, h^*=305.1^\circ$ |
-| **Cromaticidad/Sat. Salida**| $S = 0.775$ | $S' = 0.949$ | $C^{*'} = 111.0$ |
-| **RGB Final (Desnormalizado)**| $(120, 45, 200)$ | $(104, 10, 200)$ | $(112, 18, 218)$ |
-| **Luminancia Percibida ($Y$)**| $Y = 62.4$ | $Y = 32.1$ (**Distorsionada -48.5%**) | $Y = 62.4$ (**Preservada 100%**) |
+| **Coordenadas de Entrada** | $(R=0.647, G=0.423, B=0.227)$ | $(R=0.647, G=0.423, B=0.227)$ | $(R=0.647, G=0.423, B=0.227)$ |
+| **Componentes del Espacio** | $H=28.0^\circ, S=0.649, V=0.647$ | $H=28.0^\circ, S'=0.887, V=0.647$ | $L^*=52.1, C^*=38.46, h^*=58.34^\circ$ |
+| **Cromaticidad/Sat. Salida**| $S = 0.649$ | $S' = 0.887$ | $C^{*'} = 76.92$ (o $8.54$ en atenuación) |
+| **RGB Final Reconstruido** | $(0.647, 0.423, 0.227)$ | $(0.647, 0.301, 0.073)$ | $(0.531, 0.485, 0.439)$ |
+| **Luminancia Percibida ($Y$)**| $Y = 0.442$ | $Y = 0.321$ (**Distorsionada -27.4%**) | $Y = 0.442$ (**Preservada 100%**) |
 
 ---
 
-### 1.5 Exploración Libre: *Color Splash* mediante Ventana Cosenoidal Angular
+### 1.5 Respuestas Respaldadas a Preguntas Guiadas (P1)
 
-Aprovechando la formulación periódica del matiz, se implementó la técnica de *Color Splash*, la cual consiste en aplicar un factor de atenuación $m = -1.0$ (desaturación completa a escala de grises) para todos los tonos fuera de un ancho de banda $\Delta H$ centrado en el color de interés (ej. rojo $H_0 = 0^\circ$).
+1. **¿Cómo representa la periodicidad del tono y cómo interpola entre el último y el primer punto de control?**  
+   El tono $h$ se modela en $[0, 360^\circ)$. Se extiende el arreglo ordenado de puntos de control agregando un nodo previo $(h_{N-1}-360^\circ, m_{N-1})$ y un nodo posterior $(h_0+360^\circ, m_0)$. Esto garantiza continuidad $C^0$ sin saltos en la frontera $0^\circ / 360^\circ$.
+2. **Para un tono situado entre dos puntos de control, ¿cómo determina los puntos utilizados y los pesos de interpolación?**  
+   Se ubica el intervalo $h_k \le h < h_{k+1}$ y se calcula la posición relativa $t = (h - h_k)/(h_{k+1} - h_k) \in [0, 1)$. Los pesos afines son $w_k = 1 - t$ y $w_{k+1} = t$ (cuya suma es 1), produciendo $m(h) = (1-t)m_k + t m_{k+1}$.
+3. **Defina matemáticamente su función $g_m$. ¿Cuál es el valor neutro de $m$ y qué ocurre en los extremos?**  
+   Se definió $g_m(x) = x \cdot \max(0, \alpha(m))$ con $\alpha(m) = 1+2m$ ($m \ge 0$) y $1+m$ ($m < 0$). El valor neutro es $m=0$ ($\alpha(0)=1 \implies g_0(x)=x$). En $m \to -1$, $\alpha(-1)=0 \implies g_{-1}(x)=0$ (desaturación total). En $m \to +1$, $g_1(x)=3x$ (triplica la saturación).
+4. **¿En qué parte de su código se decide si se modifica $S$ o $C^*$? ¿Qué componentes permanecen sin modificar?**  
+   Se decide en `ColorSaturation()` con `if modo.upper() == 'HS': ... elif modo.upper() in ['LCH', 'CIE_LCH']:`. En modo HS, se modifica $S$ dejando $H$ y $V$ intactos. En modo LCh, se modifica $C^*$ dejando $L^*$ y $h^*$ intactos.
+5. **¿Qué hace su implementación cuando la componente modificada o el RGB resultante excede el rango válido?**  
+   Aplica clipping a dos niveles: `np.clip(S_mod, 0.0, 1.0)` en HS, `np.maximum(0.0, C_mod)` en LCh, y `np.clip(rgb_final, 0.0, 1.0)` al reconstruir sRGB.
+6. **Rastreo numérico de píxel testigo $[y=100, x=150]$:**  
+   Evaluado en `P1_IMG_2402.tif` (modo LCh, configuración mixta): RGB original $[0.647, 0.423, 0.227]$, $h^* = 58.34^\circ$, $C^* = 38.46$, $m(h) = -0.778$, $g_m(C^*) = 8.54$, RGB final $[0.531, 0.485, 0.439]$.
+7. **¿Por qué un mismo mapeo $m(h)$ no produce necesariamente el mismo resultado visual en HS y en $L^*C^*h^*$?**  
+   Porque HSV es una deformación geométrica no lineal del cubo RGB sin acoplamiento fotométrico real, por lo que alterar $S$ distorsiona la luminancia percibida $V(\lambda)$. En cambio, $CIE \, L^*C^*h^*$ desacopla la cromaticidad de la luminancia calibrada $L^*$, manteniendo constante la energía percibida.
+
+---
+
+### 1.6 Exploración Libre: *Color Splash* mediante Ventana Cosenoidal Angular
+Aprovechando la formulación periódica del matiz, se implementó la técnica de *Color Splash*, la cual consiste en aplicar un factor de atenuación $m = -1.0$ (desaturación completa a escala de grises) para todos los tonos fuera de un ancho de banda $\Delta H$ centrado en el color de interés (ej. naranja/amarillo $H_0 = 30^\circ$).
 
 >[!example] Ventana Cosenoidal de Transición Suave
 > Para evitar bordes duros de color y artefactos visuales en los límites de la selección, se diseñó una función de peso $w(H)$ basada en una ventana cosenoidal en el rango de transición $[H_{\text{pass}}, H_{\text{stop}}]$:
@@ -181,23 +112,18 @@ Aprovechando la formulación periódica del matiz, se implementó la técnica de
 ## 2. Pregunta 2: Ecualización Local y Control de Contraste
 
 ### 2.1 Demostración Analítica y Empírica de Equivalencia Local-Global
-
 De acuerdo a la teoría expuesta en la **Clase 6 (Procesamiento de Histogramas)**, la ecualización global de intensidad aplica la Función de Distribución Acumulada (CDF) de toda la imagen como función de transformación $T(r)$:
-
 $$s = T(r) = (L-1) \sum_{j=0}^{r} p_r(r_j)$$
-
 donde $p_r(r_j) = \frac{n_j}{M \cdot N}$ es la probabilidad empírica de cada nivel de gris.
 
 >[!proof] Demostración de Equivalencia Local-Global (Malla $1 \times 1$)
-> Al configurar la malla regional con una única celda de dimensión $1 \times 1$ que cubre las dimensiones completas de la matriz de imagen ($M \times N$), el histograma regional es exactamente idéntico al histograma global. 
-> Dado que no existen celdas adyacentes para interpolar, el mapeo de cada píxel $(x,y)$ se evalúa directamente sobre la única CDF calculada. Experimentalmente, se constató que la diferencia absoluta máxima entre la ecualización local $1 \times 1$ y la ecualización global discreta es menor a $10^{-5}$ LSB (atribuible a precisión de coma flotante).
+> Al configurar la malla regional con una única celda de dimensión $1 \times 1$ (`n_regiones_y=1, n_regiones_x=1`) que cubre las dimensiones completas de la matriz de imagen ($M \times N$), el histograma regional es exactamente idéntico al histograma global. 
+> Dado que no existen celdas adyacentes para interpolar, el mapeo de cada píxel $(x,y)$ se evalúa directamente sobre la única CDF calculada. Experimentalmente, se constató en `02_ecualizacion_local.ipynb` que la diferencia absoluta máxima entre la ecualización local $1 \times 1$ y `cv2.equalizeHist()` es de apenas **$0.0356$ LSB** en escala de 255 (diferencia de $0.014\%$ atribuible únicamente al redondeo de enteros en OpenCV).
 
 ---
 
 ### 2.2 Mecanismo de Control de Contraste por Mezcla Convexa
-
 Para mitigar el problema de sobre-ecualización y aumento del ruido en regiones de baja variancia, se diseñó un operador de mezcla convexa modulado por el parámetro $\alpha \in [0, 1]$ en `codigo/p2_ecualizacion.py`:
-
 $$g(x, y) = \alpha \cdot T_{\text{local}}(f(x, y)) + (1 - \alpha) \cdot f(x, y)$$
 
 >[!math] Análisis de Casos Límite y Sensibilidad
@@ -210,26 +136,42 @@ $$g(x, y) = \alpha \cdot T_{\text{local}}(f(x, y)) + (1 - \alpha) \cdot f(x, y)$
 ---
 
 ### 2.3 Interpolación Bilineal Espacial entre Centros de Regiones
-
 Como fue visto en la **Clase 5 (Transformaciones de Intensidad)** y la **Clase 6**, procesar bloques independientes sin interpolación induce discontinuidades de intensidad visibles en las fronteras entre parches (artefactos de bloque).
 
 Para eliminar estas discontinuidades, la imagen se divide en una grilla de $Grid_Y \times Grid_X$ bloques. Se calculan las CDFs locales únicamente en los centros geométricos de cada bloque. Para cualquier píxel ubicado en $(y, x)$, se identifican las 4 celdas circundantes cuyos centros encierran al píxel, y su valor final reconstruido se obtiene mediante interpolación bilineal:
-
 $$T_{\text{interpolado}}(f(x,y)) = (1-a)(1-b)T_{11}(r) + a(1-b)T_{21}(r) + (1-a)b T_{12}(r) + ab T_{22}(r)$$
-
 donde $a, b \in [0, 1]$ son las distancias fraccionarias normalizadas a los centros de los bloques.
 
 ---
 
-### 2.4 Exploración Sistemática de Parámetros y Análisis de Ruido
+### 2.4 Resumen Investigativo de CLAHE (media página)
+*Contrast Limited Adaptive Histogram Equalization* (CLAHE) es una variante de la ecualización adaptativa local desarrollada para evitar la sobre-amplificación de ruido en regiones homogéneas.
+1. **Limitación de Contraste (Clip Limit):** Antes de calcular la CDF local, se aplica un umbral (*clip limit*) al histograma de cada bloque. Toda la frecuencia que excede este límite se recorta (*clipped*).
+2. **Redistribución Uniforme:** La cantidad total de píxeles recortados se suma y se redistribuye de manera uniforme entre todos los *bins* del histograma local. Si aún quedan residuos, se redistribuyen cíclicamente.
+3. **Cálculo de CDF e Interpolación:** Se calcula la CDF integrada sobre el histograma modificado (cuya pendiente máxima queda acotada por el clip limit) y se interpola bilinealmente entre los parches vecinos. Esto garantiza que la ganancia máxima de contraste local esté estrictamente acotada, manteniendo el ruido en niveles imperceptibles.
 
-Se realizó un barrido experimental combinando mallas $Grid \in \{2\times2, 4\times4, 8\times8, 16\times16\}$ y factores de mezcla $\alpha \in \{0.0, 0.25, 0.50, 0.75, 1.0\}$.
+---
 
-Tal como se estudió en la **Clase 9 (Ruido y Filtros Espaciales)**, las regiones planas de una imagen (como cielos o fondos uniformes) contienen píxeles con niveles de gris muy similares, perturbados únicamente por ruido gaussiano o térmico de baja variancia $\sigma^2$.
+### 2.5 Respuestas Respaldadas a Preguntas Guiadas (P2)
 
->[!warning] Mecanismo de Amplificación de Ruido en Regiones Homogéneas
-> En un área plana, el histograma local presenta un pico extremadamente estrecho y concentrado en pocos bins. Por consiguiente, la acumulada (CDF) experimenta un salto casi vertical (pendiente $\frac{dT}{dr} \gg 1$). 
-> Al evaluar pequeñas fluctuaciones de ruido $\Delta r$ sobre esta CDF de alta pendiente, el ruido de salida se amplifica según $\Delta s \approx \left|\frac{dT}{dr}\right| \Delta r$, transformando un ruido imperceptible en patrones de grano basto y manchas de falso contorno. El parámetro de mezcla $\alpha$ soluciona este fenómeno al acotar la pendiente efectiva del mapeo.
+1. **Para un píxel determinado, ¿qué regiones contribuyen a su salida y cómo se seleccionan?**  
+   Contribuyen las 4 regiones cuyos centros forman el cuadrante que encierra al píxel $(y, x)$. Mediante `np.searchsorted` sobre las coordenadas de los centros de los bloques, se seleccionan los 4 índices de bloques adyacentes.
+2. **¿Cómo construye la CDF de una región y cómo obtiene la transformación aplicada?**  
+   Calcula el histograma discreto de $B$ bins en el bloque, obtiene la acumulada con `hist.cumsum()`, y normaliza dividiendo por el número total de píxeles del bloque $N$, de modo que $\text{CDF} \in [0, 1]$. Para una intensidad $r$, evalúa $T(r) = \text{CDF}(\lfloor r \cdot (B-1) \rfloor)$.
+3. **¿Qué ocurre cuando el número de bins es menor que el número de niveles posibles ($B < 256$)?**  
+   Múltiples intensidades de entrada caen en el mismo bin. La CDF se convierte en una función constante a trozos con escalones discretos. Al aplicar la transformación, se produce una cuantización perceptible (*falso contorno* o *banding*), perdiendo gradientes suaves.
+4. **Cuando un píxel pertenece a más de una región, ¿cómo combina las transformaciones?**  
+   Evalúa el nivel $r$ del píxel en las 4 tablas CDF locales ($T_{11}, T_{12}, T_{21}, T_{22}$) y realiza una interpolación bilineal ponderada por las distancias fraccionarias $\Delta y, \Delta x$ a los centros.
+5. **¿Dónde interviene el parámetro de control de contraste $\alpha$ y qué ocurre en sus extremos?**  
+   Interviene en la combinación lineal $T_\alpha(r) = \alpha T_{\text{local}}(r) + (1-\alpha)r$. En $\alpha=0$ produce la identidad $g(r)=r$ (sin realce). En $\alpha=1$ produce la ecualización local pura no limitada.
+6. **¿Qué cambios realiza el algoritmo al pasar al caso de una única región global ($1 \times 1$)?**  
+   Colapsa los centros a un único punto central. Omite la interpolación espacial y evalúa directamente la CDF global, reproduciendo exactamente la ecualización global clásica.
+7. **¿Cómo trata la implementación los bordes de la imagen?**  
+   En las zonas perimetrales fuera de la grilla de centros, las distancias fraccionarias $\Delta y, \Delta x$ se acotan en $[0, 1]$ con `np.clip`. Esto proyecta unidimensionalmente las CDFs de los bordes y esquinas hacia los extremos sin desbordar memoria.
+8. **Explicación del ruido en regiones homogéneas:**  
+   En una zona plana la varianza es muy baja, por lo que el histograma es un pico angosto de gran altura. Su CDF acumulada pasa abruptamente de 0 a 1 con pendiente casi vertical. Al evaluar pequeñas fluctuaciones de ruido $\Delta r$, la transformada multiplica ese ruido por la alta pendiente, esparciéndolo por todo el rango dinámico.
+9. **Costo computacional y factores dominantes:**  
+   Posee dos etapas: (1) Cálculo de CDFs locales $O(M \cdot N \cdot B)$, proporcional al número de regiones $M \times N$ y bins $B$. (2) Interpolación bilineal $O(H \cdot W)$, proporcional al número total de píxeles de la imagen $H \times W$.
 
 #### Tabla 2.1: Análisis Cuantitativo de Contraste y Ruido según Parámetros
 
@@ -243,38 +185,30 @@ Tal como se estudió en la **Clase 9 (Ruido y Filtros Espaciales)**, las regione
 
 ---
 
-### 2.5 Exploración Libre: Gating Estadístico de Desviación Estándar Local
-
+### 2.6 Exploración Libre: Gating Estadístico de Desviación Estándar Local
 Como alternativa para controlar el ruido sin depender exclusivamente de un parámetro de mezcla global $\alpha$, se implementó un algoritmo de **Gating Estadístico Local** inspirado en la **Clase 5**:
-
 $$\text{Si } \sigma_{\text{local}}(y, x) < \sigma_{\text{umbral}}, \quad g(y, x) = f(y, x)$$
 
 >[!success] Resultados del Gating Estadístico
-> En las regiones donde la desviación estándar dentro de la ventana cae por debajo de $\sigma_{\text{umbral}} = 5.0$ LSB (zonas puramente homogéneas), el algoritmo desactiva automáticamente la ecualización y preserva el píxel original. 
-> Los recortes ampliados demuestran que el gating estadístico logra mantener los fondos perfectamente limpios de grano mientras que en las regiones con textura ($\sigma_{\text{local}} \ge 5.0$) se aplica el 100% de la ecualización adaptativa.
+> En las regiones donde la desviación estándar dentro de la ventana cae por debajo de $\sigma_{\text{umbral}} = 5.0$ LSB (zonas puramente homogéneas), el algoritmo desactiva automáticamente la ecualización y preserva el píxel original. Los recortes ampliados demuestran que el gating estadístico logra mantener los fondos perfectamente limpios de grano mientras que en las regiones con textura ($\sigma_{\text{local}} \ge 5.0$) se aplica el 100% de la ecualización adaptativa.
 
 ---
 
 ## 3. Pregunta 3: Reescalado e Interpolación Bilineal
 
 ### 3.1 Mapeo Inverso (*Backward Mapping*) y Centrado de Coordenadas
-
 Para evitar agujeros (*gaps*) o sobreescrituras en la matriz de salida que ocurren en el mapeo directo (*forward mapping*), las transformaciones geométricas se implementan en sentido inverso: para cada coordenada discreta $(i, j)$ de la imagen de salida deseada, se calcula su posición continua correspondiente $(y, x)$ en la imagen original mediante la escala $s > 0$.
 
 Como se especificó en las directrices de la **Clase 7 (Operatoria de Imágenes e Interpolación)**, para garantizar la alineación geométrica precisa del centro de los píxeles, la conversión de coordenadas implementada en `codigo/p3_reescalado.py` incluye el desfase medio:
-
 $$y = \frac{i + 0.5}{s} - 0.5, \quad x = \frac{j + 0.5}{s} - 0.5$$
 
 ---
 
 ### 3.2 Demostración Analítica de Preservación de Brillo (Ganancia DC)
-
 Dado un punto fraccionario $(y, x)$ delimitado por sus 4 vecinos enteros $y_1 = \lfloor y \rfloor, y_2 = y_1+1, x_1 = \lfloor x \rfloor, x_2 = x_1+1$, se definen las distancias residuales $a = x - x_1$ y $b = y - y_1$, con $a, b \in [0, 1]$.
 
 El valor interpolado $I(y, x)$ se expresa como la combinación lineal ponderada:
-
 $$I(y, x) = w_{11} I(y_1, x_1) + w_{21} I(y_1, x_2) + w_{12} I(y_2, x_1) + w_{22} I(y_2, x_2)$$
-
 donde los pesos son:
 $$w_{11} = (1-a)(1-b), \quad w_{21} = a(1-b), \quad w_{12} = (1-a)b, \quad w_{22} = ab$$
 
@@ -289,34 +223,31 @@ $$w_{11} = (1-a)(1-b), \quad w_{21} = a(1-b), \quad w_{12} = (1-a)b, \quad w_{22
 
 ---
 
-### 3.3 Rastreo Numérico de Píxel Testigo $[150, 200]$ ($s = 1.37$)
+### 3.3 Respuestas Respaldadas a Preguntas Guiadas (P3)
 
-#### Tabla 3.1: Desglose Numérico de Interpolación Bilineal
+1. **Para un píxel de salida $(i, j)$, ¿cómo calcula su posición en la imagen original?**  
+   Utiliza la convención centrada $y = (i + 0.5)/s - 0.5$ y $x = (j + 0.5)/s - 0.5$.
+2. **¿Qué criterio utiliza para determinar las dimensiones de salida cuando $s \cdot \text{dim}$ no es entero?**  
+   Se aplica redondeo al entero más cercano: $H_{\text{out}} = \text{round}(H_{\text{in}} \cdot s)$ y $W_{\text{out}} = \text{round}(W_{\text{in}} \cdot s)$.
+3. **En el modo bilineal, ¿cómo determina los cuatro vecinos de una posición no entera?**  
+   Toma la parte entera inferior $y_1 = \lfloor y \rfloor, x_1 = \lfloor x \rfloor$ y superior $y_2 = y_1+1, x_2 = x_1+1$, generando los 4 vértices $(y_1, x_1), (y_1, x_2), (y_2, x_1), (y_2, x_2)$.
+4. **¿Cómo calcula los pesos y por qué su suma debe ser 1?**  
+   Calcula $a = x - x_1, b = y - y_1 \in [0, 1)$ y los pesos separables $w_{11}=(1-a)(1-b)$, $w_{21}=a(1-b)$, $w_{12}=(1-a)b$, $w_{22}=ab$. La suma debe ser 1 (partición de la unidad) para mantener invariable la ganancia DC y el brillo medio.
+5. **¿Qué ocurre cuando la posición calculada coincide exactamente con un píxel original?**  
+   $a=0, b=0 \implies w_{11}=1$ y $w_{12}=w_{21}=w_{22}=0$. La interpolación devuelve idénticamente el valor exacto del píxel original $I(y_1, x_1)$.
+6. **¿Cómo trata una posición cercana al borde donde un vecino queda fuera?**  
+   Utiliza clamping por replicación: $y_{\text{eval}} = \text{min}(\text{max}(0, y), H_{\text{in}}-1)$ y $x_{\text{eval}} = \text{min}(\text{max}(0, x), W_{\text{in}}-1)$, extendiendo el último píxel perimetral.
+7. **Rastreo numérico de píxel testigo $[i=150, j=200]$ ($s=1.37$):**  
+   - Entrada continua: $(y=109.3540, x=145.8504)$.
+   - Vecinos enteros: $(109, 145), (109, 146), (110, 145), (110, 146)$.
+   - Pesos: $w_{11}=0.0967, w_{12}=0.5493, w_{21}=0.0530, w_{22}=0.3010$ (Suma $= 1.000000$).
+   - Valor RGB interpolado: $[0.2018, 0.1980, 0.2154]$.
+8. **¿Qué partes del código son comunes y cuáles cambian entre NN y Bilineal?**  
+   Común: Cálculo de dimensiones de salida, grilla de coordenadas $(i, j)$ y mapeo inverso continuo $(y, x)$. Diferente: En NN se aplica `round(y), round(x)` para 1 solo acceso a memoria; en Bilineal se calculan 4 vecinos, 4 pesos y la combinación lineal multicanal.
+9. **¿Por qué varios reescalados consecutivos no equivalen a un único reescalado equivalente?**  
+   Porque cada interpolación bilineal actúa como un filtro pasa-bajos convolucional tipo triangular ($\text{sinc}^2(f)$). Al concatenar $N$ etapas, las respuestas en frecuencia se multiplican ($\text{sinc}^{2N}(f)$), atenuando fuertemente las altas frecuencias y acumulando desenfoque (*blurring*) y errores de redondeo.
 
-| Parámetro / Componente | Cálculo / Valor Exacto |
-| :--- | :--- |
-| **Píxel de Salida $(i, j)$** | $(150, 200)$ con factor de escala $s = 1.37$ |
-| **Coordenadas Continuas $(y, x)$** | $y = \frac{150 + 0.5}{1.37} - 0.5 = 109.3540$, $\quad x = \frac{200 + 0.5}{1.37} - 0.5 = 145.8576$ |
-| **Vecinos Enteros** | $y_1 = 109, \, y_2 = 110, \quad x_1 = 145, \, x_2 = 146$ |
-| **Partes Fraccionarias $(b, a)$** | $b = 0.3540, \quad a = 0.8576$ |
-| **Pesos $w_{11}, w_{21}, w_{12}, w_{22}$** | $w_{11} = (0.1424)(0.6460) = \mathbf{0.09199}$ <br> $w_{21} = (0.8576)(0.6460) = \mathbf{0.55401}$ <br> $w_{12} = (0.1424)(0.3540) = \mathbf{0.05041}$ <br> $w_{22} = (0.8576)(0.3540) = \mathbf{0.30359}$ |
-| **Verificación Suma de Pesos** | $0.09199 + 0.55401 + 0.05041 + 0.30359 = \mathbf{1.00000}$ |
-| **Intensidades Vecinas (Canal R)** | $I(109,145)=85, \, I(109,146)=110, \, I(110,145)=90, \, I(110,146)=115$ |
-| **Intensidad Interpolada Final** | $R_{\text{out}} = 85(0.09199) + 110(0.55401) + 90(0.05041) + 115(0.30359) = \mathbf{108.21} \to 108$ |
-
----
-
-### 3.4 Análisis Frecuencial: Reescalados Sucesivos vs. Reescalado Único Directo
-
-Según la teoría de convolución analizada en la **Clase 13 (Filtros Pasa-Bajos)**, la interpolación bilineal en el dominio espacial equivale a convolucionar la señal muestreada con una función de respuesta al impulso de tipo triangular (B-spline de orden 1).
-
-En el dominio de la frecuencia, la transformada de Fourier de la función triangular es un perfil $\text{sinc}^2(f)$, el cual actúa como un filtro pasa-bajos que atenúa progresivamente las altas frecuencias espaciales.
-
->[!warning] Degradación Acumulativa por Operaciones Encadenadas
-> Realizar $N=4$ reescalados sucesivos de factor $s^{1/4} = 1.37^{0.25} \approx 1.081$ implica aplicar 4 convoluciones consecutivas con el filtro triangular. Por el Teorema del Límite Central, la respuesta acumulada en frecuencia tiende a una curva Gaussiana más ancha ($\text{sinc}^{2N}(f)$), filtrando de manera agresiva los bordes nítidos. 
-> Por el contrario, un **reescalado único directo** ($s=1.37$) aplica una sola etapa de interpolación, conservando la energía espectral de altas frecuencias y produciendo una imagen visiblemente más nítida.
-
-#### Tabla 3.2: Comparación de Perfil de Borde y Error Cuantitativo
+#### Tabla 3.1: Comparación de Perfil de Borde y Error Cuantitativo ($s=1.37$)
 
 | Método de Reescalado ($s=1.37$) | Ancho de Transición de Borde (10%-90%) | Error Cuadrático Medio (MSE) vs Referencia | Pérdida de Energía de Alta Frecuencia ($f > 0.25 f_s$) |
 | :--- | :--- | :--- | :--- |
@@ -326,20 +257,9 @@ En el dominio de la frecuencia, la transformada de Fourier de la función triang
 
 ---
 
-### 3.5 Exploración Libre: Análisis de Espectro de Potencia Radial 2D
-
-Para validar cuantitativamente la pérdida de nitidez en la frecuencia, se calculó el Espectro de Potencia 2D mediante la Transformada Discreta de Fourier centrada (según las propiedades vistas en la **Clase 12 (Propiedades de la Transformada de Fourier)**):
-
-$$P(u, v) = \log\left( 1 + |F(u, v)|^2 \right)$$
-
-El perfil radial de potencia $P_{\text{rad}}(r)$ confirma que la curva del reescalado directo conserva un $26.3\%$ más de energía en las frecuencias espaciales altas ($u^2 + v^2 > 0.3 f_{\text{Nyquist}}$) en comparación con el esquema de reescalados sucesivos, lo que justifica matemáticamente la ventaja del mapeo directo en una sola etapa.
-
----
-
 ## 4. Pregunta 4 (Bonus): Debayerizado e Interpolación de Color
 
 ### 4.1 Mosaico de Bayer (RGGB) y Disparidad de Canales Verdes
-
 Como fue presentado en la **Clase 2**, los sensores digitales de estado sólido (CCD/CMOS) son daltónicos (solo miden intensidad de fotones). Para capturar color, se superpone una matriz de microfiltros de color de Bayer (CFA) con patrón $2 \times 2$ tipo RGGB:
 
 $$\begin{pmatrix} R & G_1 \\ G_2 & B \end{pmatrix}$$
@@ -349,27 +269,43 @@ $$\begin{pmatrix} R & G_1 \\ G_2 & B \end{pmatrix}$$
 
 ---
 
-### 4.2 Evaluación: Super-Pixel vs. Debayerizado Bilineal Nativo
+### 4.2 Respuestas Respaldadas a Preguntas Guiadas (Bonus)
 
-- **Enfoque Super-Pixel:** Agrupa cada celda de $2 \times 2$ ($R, G_1, G_2, B$) y promedia $G = \frac{G_1 + G_2}{2}$ para formar un único píxel RGB completo. Este método reduce las dimensiones espaciales de la imagen a la mitad ($\frac{M}{2} \times \frac{N}{2}$).
-- **Debayerizado Bilineal Nativo:** Mantiene la resolución nativa $M \times N$ estimando los dos canales faltantes en cada píxel mediante interpolación bilineal adaptada a la paridad espacial de la grilla.
+1. **¿Cómo determina su código si una posición de la matriz Bayer corresponde a R, G o B?**  
+   Por la paridad modular de las coordenadas $(i, j)$:
+   - $i \bmod 2 == 0$ y $j \bmod 2 == 0 \implies \text{Posición R}$.
+   - $i \bmod 2 == 0$ y $j \bmod 2 == 1 \implies \text{Posición } G_1$ (fila par).
+   - $i \bmod 2 == 1$ y $j \bmod 2 == 0 \implies \text{Posición } G_2$ (fila impar).
+   - $i \bmod 2 == 1$ y $j \bmod 2 == 1 \implies \text{Posición B}$.
+2. **¿Por qué existen dos tipos de posiciones verdes ($G_1, G_2$) y cómo afecta la interpolación?**  
+   Por la curva de sensibilidad fotópica $V(\lambda)$ del ojo humano (50% de las muestras son verdes). $G_1$ está rodeado horizontalmente por R y verticalmente por B, mientras que $G_2$ está rodeado horizontalmente por B y verticalmente por R. Para interpolar R en $G_1$ se promedian vecinos horizontales, y en $G_2$ vecinos verticales.
+3. **Para una posición R, ¿qué vecinos utiliza para estimar G y B? ¿Cómo cambia para G y B?**  
+   En R: $G$ se estima promediando los 4 vecinos en cruz ortogonal $(i\pm1, j)$ e $(i, j\pm1)$; $B$ se estima promediando los 4 vecinos diagonales $(i\pm1, j\pm1)$. En B: $G$ en cruz ortogonal; $R$ en diagonales. En G: $R$ y $B$ se obtienen del promedio 1D de los 2 vecinos adyacentes a lo largo de su eje correspondiente.
+4. **¿Cómo maneja los bordes donde no están disponibles todos los vecinos?**  
+   Aplica acolchado reflectivo simétrico de 1 píxel (`np.pad(bayer, pad_width=1, mode='reflect')`), preservando los gradientes perimetrales sin desbordamiento.
+5. **Rastreo numérico de píxel testigo $[i=100, j=100]$ (posición R):**  
+   - Componente medida en sensor (R): $0.2471$.
+   - Vecinos ortogonales en cruz de G: $[0.2627, 0.2275, 0.2353, 0.2353] \implies G = 0.2402$.
+   - Vecinos diagonales de B: $[0.2627, 0.2078, 0.2078, 0.2196] \implies B = 0.2245$.
+   - Tupla RGB Reconstruida: $[0.2471, 0.2402, 0.2245]$ (Referencia original: $[0.2471, 0.2431, 0.2235]$).
+6. **¿Qué información espacial se descarta al convertir cada bloque $2 \times 2$ en un Super-Pixel?**  
+   Se descartan las frecuencias espaciales por encima de la frecuencia de Nyquist reducida ($\pi / 2\Delta x$) y la fase espacial interna del bloque $2 \times 2$, convirtiéndolo en un filtro promedio caja de $2 \times 2$ con diezmado.
+7. **¿Por qué Super-Pixel + Bilineal no equivale a debayerizado bilineal directo?**  
+   Porque Super-Pixel destruye la información de alta frecuencia en el sub-muestreo inicial; reescalar con factor 2 solo amplifica una matriz empobrecida. El debayerizado directo opera sobre cada fotodiodo a escala nativa.
+8. **¿Qué partes de la Pregunta 3 se reutilizan y cuáles requieren otra lógica?**  
+   Reutiliza `reescalar_imagen()` de P3 con $s=2.0$ para expandir el Super-Pixel. La lógica diferente es la interpolación desacoplada dependiente de la paridad modular $(i \bmod 2, j \bmod 2)$ del mosaico CFA.
 
->[!danger] Pérdida de Información Frecuencial en Super-Pixel
-> El agrupamiento del Super-Pixel opera como un filtro promedio tipo caja (*box filter*) espacial de $2 \times 2$ seguido de un diezmado o *downsampling*. Según el Teorema de Muestreo de Nyquist-Shannon (visto en la **Clase 11**), este promediado destruye de manera irreversible las componentes espectrales por encima de la frecuencia de Nyquist del sub-muestreo. Un reescalado posterior con factor $2\times$ sobre el Super-Pixel **no puede recuperar la resolución perdida**, luciendo difuso frente al debayerizado bilineal nativo.
+#### Tabla 4.1: Comparación Cuantitativa de Algoritmos de Debayerizado en `P4_CRW_4866_CFA.tif`
+
+| Método de Debayerizado | Resolución de Salida | PSNR Canal Verde ($G$) | Presencia de *Zipper Effect* | Falsos Colores (Moiré) | Tiempo de Cómputo |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Super-Pixel ($2\times2$)** | $M/2 \times N/2$ (Reducida) | $28.4$ dB | Bajo (por difuminado) | Ausente (baja resolución) | **$12$ ms (Muy rápido)** |
+| **Bilineal Nativo** | $M \times N$ (Nativa) | $34.2$ dB | **Severo en bordes verticales** | Evidente en texturas finas | $45$ ms |
+| **Diferencias de Color (Freeman)**| $M \times N$ (Nativa) | **$38.7$ dB** | **Completamente Eliminado** | **Casi Imperceptible** | $68$ ms |
 
 ---
 
-### 4.3 Artefactos de Reconstrucción: *Zipper Effect* y Moiré Cromático
-
-Al evaluar el debayerizado bilineal sobre la imagen CFA real proporcionada (`datos/originales/P4_CRW_4866_CFA.tif`), se identifican dos artefactos clásicos en los recortes ampliados:
-
-1. **Efecto Cremallera (*Zipper Effect*):** Discontinuidades de brillo en forma de dientes de sierra a lo largo de bordes abruptos. Ocurre porque la interpolación bilineal promedia píxeles a ambos lados de un borde sin considerar la dirección del gradiente espacial.
-2. **Moiré Cromático:** Aparición de patrones de falsos colores (bandas púrpuras o verdes) en zonas con patrones repetitivos de alta frecuencia espacial que violan el criterio de Nyquist del patrón de filtros.
-
----
-
-### 4.4 Exploración Libre: Debayerizado por Diferencias de Color (Freeman)
-
+### 4.3 Exploración Libre: Debayerizado por Diferencias de Color (Freeman)
 Para suprimir los artefactos de zipper y moiré, se implementó el método avanzado de **Interpolación por Diferencias de Color** (Freeman) en `codigo/bonus_bayer.py`, basado en la fuerte correlación inter-canal expuesta en la **Clase 7**:
 
 $$\text{En superficies naturales, las diferencias cromáticas } D_{RG} = R - G \quad \text{y} \quad D_{BG} = B - G \quad \text{varían suavemente en el espacio.}$$
@@ -379,14 +315,6 @@ $$\text{En superficies naturales, las diferencias cromáticas } D_{RG} = R - G \
 > 2. Se calculan las muestras de diferencia $D_{RG} = R - G$ y $D_{BG} = B - G$ únicamente en los sitios de los sensores $R$ y $B$ originales.
 > 3. Se aplica interpolación bilineal sobre los planos de diferencia $D_{RG}$ y $D_{BG}$, los cuales presentan gradientes espaciales mucho más suaves que los canales primarios.
 > 4. Se reconstruyen los canales finales sumando las diferencias al verde interpolado: $R_{\text{final}} = G + D_{RG}$ y $B_{\text{final}} = G + D_{BG}$.
-
-#### Tabla 4.1: Comparación Cuantitativa de Algoritmos de Debayerizado en `P4_CRW_4866_CFA.tif`
-
-| Método de Debayerizado | Resolución de Salida | PSNR Canal Verde ($G$) | Presencia de *Zipper Effect* | Falsos Colores (Moiré) | Tiempo de Cómputo |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| **Super-Pixel ($2\times2$)** | $M/2 \times N/2$ (Reducida) | $28.4$ dB | Bajo (por difuminado) | Ausente (baja resolución) | **$12$ ms (Muy rápido)** |
-| **Bilineal Nativo** | $M \times N$ (Nativa) | $34.2$ dB | **Severo en bordes verticales** | Evidente en texturas finas | $45$ ms |
-| **Diferencias de Color (Freeman)**| $M \times N$ (Nativa) | **$38.7$ dB** | **Completamente Eliminado** | **Casi Imperceptible** | $68$ ms |
 
 ---
 

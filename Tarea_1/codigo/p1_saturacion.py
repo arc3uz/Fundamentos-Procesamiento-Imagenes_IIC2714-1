@@ -1,8 +1,3 @@
-"""
-Módulo para la Pregunta 1: Saturación Selectiva de Color
-IEE2714 Fundamentos de Procesamiento de Imágenes
-"""
-
 import cv2
 import numpy as np
 

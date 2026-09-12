@@ -55,3 +55,26 @@ El repositorio está organizado en módulos reutilizables y cuadernos de anális
 └── informe/
     ├── informe_tarea1.pdf         # Informe final entregable
     └── informe_tarea1.md         # Código base del informe
+```
+
+
+
+### Trazabilidad de Funciones y Cuadernos
+Para facilitar la revisión del código en instancias de evaluación individual, la siguiente tabla detalla la ubicación exacta de cada etapa algorítmica:
+
+#### Tabla 0.1: Ubicación de Algoritmos y Cuadernos en el Repositorio
+
+| Pregunta / Algoritmo | Módulo / Función | Cuaderno de Reproducción | Parámetros Principales | Descripción del Algoritmo |
+| :--- | :--- | :--- | :--- | :--- |
+| **P1.1 Continuidad Periódica** | `codigo/p1_saturacion.py` $\to$ `interpolar_m_periodico()` | `cuadernos/01_saturacion_color.ipynb` | `puntos_control` | Agrega nodos virtuales en $-360^\circ$ y $+360^\circ$. |
+| **P1.2 Función de Sat.** | `codigo/p1_saturacion.py` $\to$ `funcion_g_m()` | `cuadernos/01_saturacion_color.ipynb` | `S`, `m`, `metodo` | Evalúa $g_m(S)$ lineal o por potencia ($S^{2^{-m}}$). |
+| **P1.3 Gamut Clipping** | `codigo/p1_saturacion.py` $\to$ `ColorSaturation()` | `cuadernos/01_saturacion_color.ipynb` | `img`, `puntos_control`, `modo` | Trunca $C^* \ge 0$ y realiza clipping $[0, 1]$ en sRGB. |
+| **P2.1 Ecualización Global** | `codigo/p2_ecualizacion.py` $\to$ `ecualizacion_local_malla()` | `cuadernos/02_ecualizacion_local.ipynb` | `n_regiones_y=1`, `n_regiones_x=1` | Malla $1 \times 1$ idéntica a ecualización global. |
+| **P2.2 Mezcla Convexa** | `codigo/p2_ecualizacion.py` $\to$ `ecualizacion_local_malla()` | `cuadernos/02_ecualizacion_local.ipynb` | `alpha` | Aplica combinación $g = \alpha T_{\text{local}} + (1-\alpha)f$. |
+| **P2.3 Interp. Espacial CDF**| `codigo/p2_ecualizacion.py` $\to$ `ecualizacion_local_malla()` | `cuadernos/02_ecualizacion_local.ipynb` | `n_regiones_y`, `n_regiones_x` | Interpola bilinealmente las CDFs de los 4 centros adyacentes. |
+| **P3.1 Backward Mapping** | `codigo/p3_reescalado.py` $\to$ `reescalar_imagen()` | `cuadernos/03_reescalado_interpolacion.ipynb` | `s`, `metodo` | Mapeo inverso con desfase $+0.5/s - 0.5$. |
+| **P3.2 Pesos Bilineales** | `codigo/p3_reescalado.py` $\to$ `reescalar_imagen()` | `cuadernos/03_reescalado_interpolacion.ipynb` | `dy`, `dx` | Calcula $w_{11}, w_{12}, w_{21}, w_{22}$ con $\sum w = 1$. |
+| **P4.1 Debayerizado Bilineal**| `codigo/bonus_bayer.py` $\to$ `debayer_bilinear()` | `cuadernos/04_bonus_debayerizado.ipynb` | `bayer` | Interpola $G$ en $R/B$, $R$ en $G/B$ y $B$ en $G/R$ según paridad. |
+| **P4.4 Diferencias de Color** | `codigo/bonus_bayer.py` $\to$ `debayer_freeman_diff()` | `cuadernos/04_bonus_debayerizado.ipynb` | `bayer` | Interpola $D_{RG} = R-G$ y $D_{BG} = B-G$ (Freeman). |
+
+---

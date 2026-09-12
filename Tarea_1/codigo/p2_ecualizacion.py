@@ -1,9 +1,5 @@
-"""
-Módulo para la Pregunta 2: Ecualización Local y Control de Contraste
-IEE2714 Fundamentos de Procesamiento de Imágenes
-"""
-
 import numpy as np
+import matplotlib.pyplot as plt
 import cv2
 
 
@@ -161,3 +157,32 @@ def clahe_referencia_cv2(img_gray: np.ndarray, clip_limit: float = 2.0, tile_gri
     img_uint8 = (np.clip(img_gray, 0.0, 1.0) * 255.0).astype(np.uint8)
     res_uint8 = clahe.apply(img_uint8)
     return res_uint8.astype(np.float64) / 255.0
+
+
+def graficar_histograma_comparativo(img_original, img_procesada, titulo="Comparación de Histogramas"):
+    """
+    Genera y grafica los histogramas de una imagen original y una procesada
+    para evidenciar el estiramiento o redistribución del contraste.
+    """
+    fig, axes = plt.subplots(1, 2, figsize=(14, 4))
+    
+    # Histograma de la imagen original
+    hist_orig, _ = np.histogram(img_original.ravel(), bins=256, range=(0.0, 1.0))
+    axes[0].plot(hist_orig, color='black', lw=1.5)
+    axes[0].fill_between(range(256), hist_orig, color='gray', alpha=0.3)
+    axes[0].set_title(f"Histograma: {titulo} (Original)")
+    axes[0].set_xlabel("Nivel de Intensidad [0, 1]")
+    axes[0].set_ylabel("Número de Píxeles")
+    axes[0].grid(True, alpha=0.3)
+    
+    # Histograma de la imagen procesada
+    hist_proc, _ = np.histogram(img_procesada.ravel(), bins=256, range=(0.0, 1.0))
+    axes[1].plot(hist_proc, color='blue', lw=1.5)
+    axes[1].fill_between(range(256), hist_proc, color='dodgerblue', alpha=0.3)
+    axes[1].set_title(f"Histograma: {titulo} (Procesada)")
+    axes[1].set_xlabel("Nivel de Intensidad [0, 1]")
+    axes[1].set_ylabel("Número de Píxeles")
+    axes[1].grid(True, alpha=0.3)
+    
+    plt.tight_layout()
+    plt.show()

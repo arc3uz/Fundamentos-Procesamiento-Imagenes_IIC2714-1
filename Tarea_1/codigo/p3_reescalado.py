@@ -1,9 +1,5 @@
-"""
-Módulo para la Pregunta 3: Reescalado e Interpolación Bilineal
-IEE2714 Fundamentos de Procesamiento de Imágenes
-"""
-
 import numpy as np
+import matplotlib.pyplot as plt
 
 
 def reescalar_imagen(
@@ -88,3 +84,35 @@ def reescalar_imagen(
 
     salida = np.clip(salida, 0.0, 1.0)
     return salida[:, :, 0] if es_gris else salida
+
+def evaluar_error_reescalado(img_orig, s_red=0.6, s_rec=1.666):
+    """
+    Evalúa cuantitativamente la pérdida de información en un ciclo
+    de reducción seguido de ampliación para Vecino Más Cercano y Bilineal.
+    """
+    from codigo.p3_reescalado import reescalar_imagen
+    
+    # Ciclo Vecino Más Cercano
+    down_nn = reescalar_imagen(img_orig, s=s_red, metodo="vecino")
+    rec_nn  = reescalar_imagen(down_nn, s=s_rec, metodo="vecino")
+    
+    # Ciclo Bilineal
+    down_bi = reescalar_imagen(img_orig, s=s_red, metodo="bilineal")
+    rec_bi  = reescalar_imagen(down_bi, s=s_rec, metodo="bilineal")
+    
+    # Ajuste de dimensiones comunes para comparación estricta
+    h_min = min(img_orig.shape[0], rec_nn.shape[0], rec_bi.shape[0])
+    w_min = min(img_orig.shape[1], rec_nn.shape[1], rec_bi.shape[1])
+    
+    orig_ref = img_orig[:h_min, :w_min]
+    nn_eval  = rec_nn[:h_min, :w_min]
+    bi_eval  = rec_bi[:h_min, :w_min]
+    
+    mae_nn = np.mean(np.abs(orig_ref - nn_eval))
+    mae_bi = np.mean(np.abs(orig_ref - bi_eval))
+    
+    print(f"--- EVALUACIÓN CUANTITATIVA CICLO DE REESCALADO ---")
+    print(f"Error Absoluto Medio (MAE) - Vecino Más Cercano : {mae_nn:.5f}")
+    print(f"Error Absoluto Medio (MAE) - Interpolación Bilineal: {mae_bi:.5f}")
+    
+    return mae_nn, mae_bi
